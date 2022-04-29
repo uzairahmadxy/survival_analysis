@@ -1,2 +1,23 @@
-# survival_analysis
-Using USPTO Examiner's data, to see how long it takes for examiners to leave their jobs.
+# Survival Analysis
+
+## Background
+The United States Patent and Trademark Office (USPTO) is the federal agency for granting U.S. patents and registering trademarks.  The USPTO employs over 10,000 patent examiners whose primary task is to assess inventions for patentability and issue patents when appropriate. The USPTO faced alarming [employee attrition & a backlog in applciations](https://www.networkworld.com/article/2351024/us-patent-backlog--employee-attrition-grow-at-alarming-rates.html).
+
+## Analysis
+An analysis was done to look at attrition rates, survaivability of examiners by Demographic segments using Kaplan–Meier estimates. Please note that due to limited availablity of data (masking), the estimates are not accurate.
+
+### Gender
+Females have a higher likelihood to stay at their Job at the USPTO. 
+![gender](/images/unnamed-chunk-3-1)
+
+### Race
+We see varying period of stay for different races.
+![race](/images/All Races-2)
+
+**Insights:**
+- Men ~14% more likely to leave than Women
+- Hispanic ~16% more likely to leave than Asians
+- Black ~25% less likely to leave than Hispanic
+![coxregression](/images/CoxRegression_Estimates)
+
+
