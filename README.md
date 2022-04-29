@@ -8,16 +8,16 @@ An analysis was done to look at attrition rates, survaivability of examiners by 
 
 ### Gender
 Females have a higher likelihood to stay at their Job at the USPTO. 
-![gender](/images/unnamed-chunk-3-1)
+![gender](/images/unnamed-chunk-3-1.png)
 
 ### Race
 We see varying period of stay for different races.
-![race](/images/All Races-2)
+![race](/images/All Races-2.png)
 
 **Insights:**
 - Men ~14% more likely to leave than Women
 - Hispanic ~16% more likely to leave than Asians
 - Black ~25% less likely to leave than Hispanic
-![coxregression](/images/CoxRegression_Estimates)
+![coxregression](/images/CoxRegression_Estimates.png)
 
 
