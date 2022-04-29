@@ -1,0 +1,187 @@
+---
+title: "S10 Transition matrix example"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+##### setup -----
+rm(list = ls())
+gc()
+library(tidyverse)
+library(skimr)
+library(lubridate)
+library(arrow)
+library(modelsummary)
+library(gender)
+library(survival)
+library(survminer)
+library(lubridate)
+library(kableExtra)
+set.seed(10101)
+##### paths -----
+data_path = "E:\\OneDrive - McGill University\\Winter Semester\\ORGB-671 Talent Analytics\\Project\\"
+```
+
+```{r}
+library(readr)
+dataset_68740 <- read_csv("E:/OneDrive - McGill University/Winter Semester/ORGB-671 Talent Analytics/Project/dataset-68740.csv")
+```
+
+```{r  Loading Data}
+# loading the datasets
+au_movement <- read.csv(paste0(data_path, "au_movement.csv"))
+tenure <- read.csv(paste0(data_path, "examiner_tenure.csv")) # minDate=2000-01-02, maxDate=2016-03-03
+apps <- read.csv(paste0(data_path, "apps.csv"))
+current_au <- read.csv(paste0(data_path, "curr_au.csv"))
+gender_race <- read.csv(paste0(data_path, "au_gender_race.csv"))
+
+# Define now:
+# t0 = 2007-01-01
+# t1 = 2011-01-01
+# t2 = 2016-03-03
+
+
+# add gender and race back to tenure
+examiner_gender_race = apps[,c("examiner_id","gender","race")]
+# drop missing vals
+#examiner_gender_race %>% select(gender) %>% skim()
+examiner_gender_race=examiner_gender_race[!is.na(examiner_gender_race$gender)==TRUE,]
+examiner_gender_race %>% select(race) %>% skim() # none missing
+
+# remove duplicates
+nrow(distinct(examiner_gender_race))
+examiner_gender_race = distinct(examiner_gender_race)
+tenure<-merge(x = tenure, y = examiner_gender_race, by = "examiner_id", all.x = FALSE)
+
+# 1 means we don't know if they left, 2 if we know their exit date
+tenure = tenure %>% mutate(status = ifelse(is.na(exit_date), 1, 2),
+                           status_fake = 2)
+
+rm(apps, au_movement, current_au, gender_race, examiner_gender_race)
+gc()
+```
+
+# Survival Analysis
+```{r}
+# ggsurvplot(
+#     fit = survfit(Surv(tenure, status) ~ 1, data = tenure), 
+#     xlab = "Years", 
+#     ylab = "Overall survival probability (censored)")
+ggsurvplot(
+    fit = survfit(Surv(tenure, status_fake) ~ 1, data = tenure), 
+    xlab = "Years", 
+    ylab = "Survival probability")
+```
+
+```{r Gender}
+male <- survfit(Surv(tenure, status_fake) ~ 1, data = tenure[tenure$gender=='male',])
+female <- survfit(Surv(tenure, status_fake) ~ 1, data = tenure[tenure$gender=='female',])
+broom::tidy(male) %>% 
+  kable()
+
+fit <- list(male = male, female = female)
+ggsurvplot(fit, data = tenure, combine = TRUE, # Combine curves
+           risk.table = TRUE,                  # Add risk table
+           conf.int = TRUE,                    # Add confidence interval
+           conf.int.style = "ribbon",            # CI style, use "step" or "ribbon"
+           censor = FALSE,                     # Remove censor points
+           tables.theme = theme_cleantable(),  # Clean risk table
+           palette = "jco")
+```
+
+```{r Frequent Races}
+Asian <- survfit(Surv(tenure, status_fake) ~ 1, data = tenure[tenure$race=='Asian',])
+White <- survfit(Surv(tenure, status_fake) ~ 1, data = tenure[tenure$race=='White',])
+
+fit <- list(Asian=Asian, White=White)
+ggsurvplot(fit, data = tenure, combine = TRUE, # Combine curves
+           risk.table = TRUE,                  # Add risk table
+           conf.int = TRUE,                    # Add confidence interval
+           conf.int.style = "ribbon",            # CI style, use "step" or "ribbon"
+           censor = FALSE,                     # Remove censor points
+           tables.theme = theme_cleantable(),  # Clean risk table
+           palette = "jco")
+```
+
+```{r All Races}
+Asian <- survfit(Surv(tenure, status_fake) ~ 1, data = tenure[tenure$race=='Asian',])
+White <- survfit(Surv(tenure, status_fake) ~ 1, data = tenure[tenure$race=='White',])
+Hispanic <- survfit(Surv(tenure, status_fake) ~ 1, data = tenure[tenure$race=='Hispanic',])
+Black <- survfit(Surv(tenure, status_fake) ~ 1, data = tenure[tenure$race=='Black',])
+
+fit <- list(Asian=Asian, White=White, Hispanic=Hispanic, Black=Black)
+
+ggsurvplot(fit, data = tenure, combine = TRUE, # Combine curves
+           risk.table = TRUE,                  # Add risk table
+           conf.int = TRUE,                    # Add confidence interval
+           conf.int.style = "ribbon",            # CI style, use "step" or "ribbon"
+           censor = FALSE,                     # Remove censor points
+           tables.theme = theme_cleantable(),  # Clean risk table
+           palette = "jco")
+
+ggsurvplot(fit, data = tenure, combine = TRUE, # Combine curves
+           risk.table = TRUE,                  # Add risk table
+           conf.int = FALSE,                    # Add confidence interval
+           conf.int.style = "ribbon",            # CI style, use "step" or "ribbon"
+           censor = FALSE,                     # Remove censor points
+           tables.theme = theme_cleantable(),  # Clean risk table
+           palette = "jco")
+```
+
+# Cox Regression
+```{r Using race}
+broom::tidy(
+  coxph(Surv(tenure, status_fake) ~ race, data = tenure),
+  exp = TRUE
+  ) %>%
+  kable()
+# creg= coxph(Surv(tenure, status_fake) ~ race, data = tenure)
+# summary(creg)
+```
+
+```{r Using gender}
+broom::tidy(
+  coxph(Surv(tenure, status_fake) ~ gender, data = tenure),
+  exp = TRUE
+  ) %>%
+  kable()
+# creg= coxph(Surv(tenure, status_fake) ~ gender, data = tenure)
+# summary(creg)
+```
+
+```{r Cox Regression Results}
+# broom::tidy(
+#   coxph(Surv(tenure, status_fake) ~ gender, data = tenure), 
+#   exp = TRUE
+#   ) %>% 
+#   kable()
+# 
+# broom::tidy(
+#   coxph(Surv(tenure, status_fake) ~ race, data = tenure), 
+#   exp = TRUE
+#   ) %>% 
+#   kable()
+
+broom::tidy(
+  coxph(Surv(tenure, status_fake) ~ gender + relevel(factor(race), ref = "Asian"), data = tenure), 
+  exp = TRUE
+  ) %>% 
+  kable()
+
+# broom::tidy(
+#   coxph(Surv(tenure, status_fake) ~ gender+race, data = tenure), 
+#   exp = TRUE
+#   ) %>% 
+#   kable()
+```
+
+```{r}
+broom::tidy(
+  coxph(Surv(tenure, status_fake) ~ gender + relevel(factor(race), ref = "Hispanic"), data = tenure), 
+  exp = TRUE
+  ) %>% 
+  kable()
+# creg = coxph(Surv(tenure, status_fake) ~ gender + relevel(factor(race), ref = "Hispanic"), data = tenure)
+# summary(creg)
+```
